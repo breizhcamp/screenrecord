@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+set -eux
+
+# MacOS... just sucks
+HERE="$(cd -P "$(dirname "${BASH_SOURCE[0]}" )" && pwd)"
+
+ARG_DEVICE=${1-}
+ARG_SIZE=${2-}
+SIZE=${2-1280x1024}
+
+detect_osx_device() {
+  # 0: webcam
+  # 1: main screen
+  # 2: external screen if there's one...
+
+  local av_devices;
+  av_devices=$("$FFMPEG" -f avfoundation -list_devices true -i "" 2>&1 | grep "^\[AVFoundation input device")
+
+  if echo "$av_devices" | grep -q "\[2\] Capture"; then
+    DEFAULT_DEVICE="2:"
+  elif echo "$av_devices" | grep -q "\[1\] Capture"; then
+    DEFAULT_DEVICE="1:"
+  elif echo "$av_devices" | grep -q "\[0\] Capture"; then
+    DEFAULT_DEVICE="0:"
+  elif [[ -z $ARG_DEVICE ]]; then
+    echo "Capture device detection failed, please run ./$0 <DEVICE_ID>, where ID is in"
+    echo "$av_devices"
+    exit 1
+  fi
+}
+
+# OS specific support
+case "$(uname)" in
+  CYGWIN* )
+    FFMPEG="$HERE/arch/win32/ffmpeg.exe"
+    ;;
+  MINGW* )
+    FFMPEG="$HERE/arch/win32/ffmpeg.exe"
+    ;;
+  Darwin* )
+    FFMPEG="$HERE/arch/osx64/ffmpeg"
+    detect_osx_device
+    PARAMS_INPUT="-r 5 -pix_fmt yuyv422 -f avfoundation -i ${1-$DEFAULT_DEVICE}"
+    ;;
+  Linux* )
+    FFMPEG="$HERE/arch/linux64/ffmpeg"
+    DEFAULT_DEVICE=":0.0+0,0"
+    PARAMS_INPUT="-r 5 -f x11grab -s $SIZE -i ${1-$DEFAULT_DEVICE}"
+    ;;
+esac
+
+PARAMS_COMPRESSION="-pix_fmt yuv422p -tune stillimage,zerolatency -acodec none -vcodec libx264 -crf 10 -r 5 -preset ultrafast"
+
+OUTPUT_DIR="$HERE/videos"
+mkdir -p "$OUTPUT_DIR"
+OUTPUT_FILE="$OUTPUT_DIR/$(date '+%Y%m%d-%H%M%S').m4v"
+
+"$FFMPEG" -rtbufsize 30000k $PARAMS_INPUT $PARAMS_COMPRESSION "$OUTPUT_FILE"
+chmod 444 "$OUTPUT_FILE"

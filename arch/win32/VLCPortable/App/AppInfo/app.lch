@@ -1,0 +1,4 @@
+[Launch] 
+ExecuteFile=FramaRoot\Apps\VLCPortable\VLCPortable.exe
+ExecuteDirectory=FramaRoot\Apps\VLCPortable
+ExecuteParameters=
