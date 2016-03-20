@@ -59,7 +59,7 @@ PARAMS_COMPRESSION="-pix_fmt yuv422p -tune stillimage -acodec none -vcodec libx2
 
 OUTPUT_DIR="$HERE/videos"
 mkdir -p "$OUTPUT_DIR"
-OUTPUT_FILE="$OUTPUT_DIR/$(date '+%Y%m%d-%H%M%S').m4v"
+OUTPUT_FILE="$OUTPUT_DIR/$(date '+%Y%m%d-%H%M%S').mkv"
 
 "$FFMPEG" -rtbufsize 30000k $PARAMS_INPUT $PARAMS_COMPRESSION "$OUTPUT_FILE"
 chmod 444 "$OUTPUT_FILE"
