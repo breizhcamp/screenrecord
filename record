@@ -29,27 +29,33 @@ detect_osx_device() {
   fi
 }
 
+detect_linux_device() {
+  local geoms;
+  if [[ -z $ARG_DEVICE ]]; then
+    declare -a geoms=($(xrandr | sed -n "/ connected [^primary]/s/^.* \([0-9]\+x[0-9]\+\)+\([0-9]\++[0-9]\+\).*$/\1 \2/p"))
+    if [[ ${#geoms[@]} -lt 2 ]]; then
+      declare -a geoms=($(xrandr | sed -n "/ connected primary/s/^.* \([0-9]\+x[0-9]\+\)+\([0-9]\++[0-9]\+\).*$/\1 \2/p"))
+    fi
+    DEFAULT_DEVICE=":0.0+${geoms[1]/+/,}"
+    SIZE="${geoms[0]}"
+  fi
+}
+
 # OS specific support
 case "$(uname)" in
-  CYGWIN* )
-    FFMPEG="$HERE/arch/win32/ffmpeg.exe"
-    ;;
-  MINGW* )
-    FFMPEG="$HERE/arch/win32/ffmpeg.exe"
-    ;;
   Darwin* )
     FFMPEG="$HERE/arch/osx64/ffmpeg"
     detect_osx_device
     PARAMS_INPUT="-r 5 -pix_fmt yuyv422 -f avfoundation -i ${1-$DEFAULT_DEVICE}"
     ;;
   Linux* )
+    detect_linux_device
     FFMPEG="$HERE/arch/linux64/ffmpeg"
-    DEFAULT_DEVICE=":0.0+0,0"
     PARAMS_INPUT="-r 5 -f x11grab -s $SIZE -i ${1-$DEFAULT_DEVICE}"
     ;;
 esac
 
-PARAMS_COMPRESSION="-pix_fmt yuv422p -tune stillimage,zerolatency -acodec none -vcodec libx264 -crf 10 -r 5 -preset ultrafast"
+PARAMS_COMPRESSION="-pix_fmt yuv422p -tune stillimage -acodec none -vcodec libx264 -crf 18 -r 5 -preset superfast"
 
 OUTPUT_DIR="$HERE/videos"
 mkdir -p "$OUTPUT_DIR"
